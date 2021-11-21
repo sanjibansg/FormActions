@@ -14,6 +14,7 @@ class questionData(BaseModel):
     formID: int
     question: str
     format: str  # format for acceptable response
+    created: datetime.datetime
 
 class answerData(BaseModel):
     answerID: int
@@ -24,13 +25,13 @@ class responseData(BaseModel):
     responseID: int
     formID: int
     userID: int
-    response: list # response is a list of [{questionID: answerID}]
+    responses: list # response is a list of [{questionID: answerID}]
 
 app = FastAPI()
 
-
 @app.post("/createForm/")
 def createForm(data: formData):
+
     return data
 
 @app.post("/createQuestion/")
@@ -44,4 +45,5 @@ def createAnswer(data:answerData):
 
 @app.post("/createResponse/")
 def createResponse(data:responseData):
+    print(data.responseID)
     return data
