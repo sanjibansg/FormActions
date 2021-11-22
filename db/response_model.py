@@ -4,7 +4,6 @@ import datetime
 class response_model(model):
     def __init__(self):
         super().__init__()
-        self.session = self.cluster.connect('formactions')
         createQuery = '''
                          CREATE TYPE IF NOT EXISTS response(
                              questionId int,
@@ -23,8 +22,8 @@ class response_model(model):
         insertQuery = '''
                       INSERT INTO responses
                       VALUES({responseId},{formId},{userId},{responses},{created});
-                      '''.format(responseId=data.responseId,formId=data.formId,userId=data.userId,
-                                 responses=data.responses,created=datetime.datetime.now())
+                      '''.format(responseId=data['responseId'],formId=data['formId'],userId=data['userId'],
+                                 responses=data['responses'],created=datetime.datetime.now())
         self.session.execute(insertQuery)
 
     def fetch_response(self,responseId):
