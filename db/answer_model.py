@@ -3,7 +3,6 @@ from model import model
 class answer_model(model):
     def __init__(self):
         super().__init__()
-        self.session = self.cluster.connect('formactions')
         createQuery = '''
                          CREATE TABLE IF NOT EXISTS answers(
                          answerId int,
@@ -16,7 +15,7 @@ class answer_model(model):
         insertQuery = '''
                       INSERT INTO answers
                       VALUES({answerId},{questionId},{answer});
-                      '''.format(answerId=data.answerId,questionId=data.questionId,answer=data.answer)
+                      '''.format(answerId=data['answerId'],questionId=data['questionId'],answer=data['answer'])
         self.session.execute(insertQuery)
 
     def fetch_answer(self,answerId):

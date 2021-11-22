@@ -4,7 +4,6 @@ import datetime
 class form_model(model):
     def __init__(self):
         super().__init()
-        self.session = self.cluster.connect('formactions')
         createQuery = '''
                          CREATE TYPE IF NOT EXISTS action(
                              actionId int,
@@ -15,7 +14,7 @@ class form_model(model):
                          clientId int,
                          questions set<int>,
                          responses set<int>,
-                         actions set<action>,
+                         actions list<action>,
                          created timestamp,
                          deadline timestamp,
                          PRIMARY KEY(formId));'''
@@ -25,8 +24,8 @@ class form_model(model):
         insertQuery = '''
                       INSERT INTO forms (formId,clientId,questionId,actionId,created,deadline)
                       VALUES ({formId},{clientId},{questionId},{actionId},{created},{deadline});
-                      '''.format(formId=data.formId,clientId=data.clientId,questions=data.questions,
-                                 actions=data.actions,created=datetime.datetime.now(),deadline=data.deadline)
+                      '''.format(formId=data['formId'],clientId=data['clientId'],questions=data['questions'],
+                                 actions=data['actions'],created=datetime.datetime.now(),deadline=data['deadline'])
         self.session.execute(insertQuery)
 
     def add_response(self,formId,response):
