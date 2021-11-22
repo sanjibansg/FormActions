@@ -1,5 +1,7 @@
 from fastapi import FastAPI
+from fastapi_utils.tasks import repeat_every
 from pydantic import BaseModel
+
 import datetime
 
 import db
@@ -7,6 +9,7 @@ import actions
 
 from redis import Redis
 from rq import Queue
+from rq_scheduler import Scheduler
 
 class formData(BaseModel):
     formID: int
@@ -46,9 +49,9 @@ def initializeDatabase():
 
 @app.on_event("startup")
 def initializeRedisQueue():
-    global queue
+    global queue,scheduler
     queue = Queue(connection=Redis())
-
+    scheduler = Scheduler(queue=queue)
 
 @app.post("/createForm/")
 def createForm(data: formData):
@@ -62,7 +65,11 @@ def createForm(data: formData):
     for action_data in data.actions:
         if action_data['trigger']=='on_deadline':
             action_func = actionDB.fetch_action(action_data['actionId'])
-            result = queue.enqueue_at(getattr(data.deadline,actions,action_func[0]['action']))
+            result = queue.enqueue_at(data.deadline,getattr(actions,action_func[0]['action']))
+        elif action_data['trigger']=='daily':
+            action_func = actionDB.fetch_action(action_data['actionId'])
+            result = scheduler.cron(cron_string="0 5 * * *",func=getattr(data.deadline,actions,action_func[0]['action']))
+
 
 @app.post("/createQuestion/")
 def createQuestion(data: questionData):
@@ -95,3 +102,12 @@ def createResponse(data:responseData):
         if action_data['trigger']=='after_every_response':
             action_func = actionDB.fetch_action(action_data['actionId'])
             result = queue.enqueue(getattr(actions,action_func[0]['action']))
+
+# Cron job for every day
+@repeat_every(seconds=86400)
+def cron_daily():
+    forms = formDB.fetchAll()
+    for form in forms:
+        for action_func in form['actions']:
+            if action_func['trigger']=='daily':
+                result = queue.enqueue(getattr(actions,action_func[0]['action']))
