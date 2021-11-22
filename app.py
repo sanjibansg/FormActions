@@ -1,5 +1,7 @@
 from fastapi import FastAPI
+from fastapi_utils.tasks import repeat_every
 from pydantic import BaseModel
+
 import datetime
 
 import db
@@ -95,3 +97,12 @@ def createResponse(data:responseData):
         if action_data['trigger']=='after_every_response':
             action_func = actionDB.fetch_action(action_data['actionId'])
             result = queue.enqueue(getattr(actions,action_func[0]['action']))
+
+# Cron job for every day
+@repeat_every(seconds=86400)
+def cron_daily():
+    forms = formDB.fetchAll()
+    for form in forms:
+        for action_func in form['actions']:
+            if action_func['trigger']=='daily':
+                result = queue.enqueue(getattr(actions,action_func[0]['action']))
