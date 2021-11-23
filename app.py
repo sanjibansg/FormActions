@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from fastapi_utils.tasks import repeat_every
 from pydantic import BaseModel
 
 import datetime
@@ -34,7 +33,7 @@ class responseData(BaseModel):
     responseID: int
     formID: int
     userID: int
-    responses: list # response is a list of [{questionID: answerID}]
+    responses: list # response is a list of [{questionId: {questionID},answerId:{answerID}}]
 
 app = FastAPI()
 
