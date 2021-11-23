@@ -12,8 +12,8 @@ class form_model(model):
                          CREATE TABLE IF NOT EXISTS forms(
                          formId int,
                          clientId int,
-                         questions set<int>,
-                         responses set<int>,
+                         questions list<int>,
+                         responses list<int>,
                          actions list<action>,
                          created timestamp,
                          deadline timestamp,

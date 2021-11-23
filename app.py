@@ -40,7 +40,7 @@ app = FastAPI()
 
 @app.on_event("startup")
 def initializeDatabase():
-    global db,formDB,responseDB,questionDB,answerDB,actionDB
+    global formDB,responseDB,questionDB,answerDB,actionDB
     formDB = db.form_model()
     responseDB = db.response_model()
     questionDB = db.question_model()
