@@ -1,15 +1,23 @@
-from model import model
+from .model import model
+from utils import logger
 
 class action_model(model):
     def __init__(self):
-        super().__init__()
-        createQuery = '''
-                         CREATE TABLE IF NOT EXISTS actions(
-                         actionId int,
-                         action text,
-                         meta   list<text>
-                         PRIMARY KEY(actionId));'''
-        self.session.execute(createQuery)
+        logging=logger("action model init")
+        try:
+            logging.info("[Connecting to Cassandra] Checking for actions table")
+            super().__init__()
+            createQuery = '''
+                            CREATE TABLE IF NOT EXISTS actions(
+                            actionId int,
+                            action text,
+                            meta   list<text>,
+                            PRIMARY KEY(actionId));'''
+            self.session.execute(createQuery)
+            logging.info("Actions table found sucessfully")
+        except Exception:
+            logging.exception("Error while connecting to actions table",exc_info=True)
+
 
     def add_action(self,data):
         insertQuery = '''

@@ -9,3 +9,7 @@ class model():
                                 with replication={'class': 'SimpleStrategy', 'replication_factor' : 2};''')
         self.session = self.cluster.connect('formactions')
         self.session.row_factory = dict_factory
+
+
+    def get_session_object(self):
+        return self.session

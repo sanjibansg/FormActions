@@ -1,18 +1,25 @@
-from model import model
+from .model import model
 import datetime
+from utils import logger
 
 class question_model(model):
     def __init__(self):
-        super().__init__()
-        createQuery = '''
-                         CREATE TABLE IF NOT EXISTS questions(
-                         questionId int,
-                         formId int,
-                         question text,
-                         format text,
-                         created timestamp
-                         PRIMARY KEY(questionId));'''
-        self.session.execute(createQuery)
+        logging=logger("question model init")
+        try:
+            logging.info("[Connecting to Cassandra] Checking for questions table")
+            super().__init__()
+            createQuery = '''
+                            CREATE TABLE IF NOT EXISTS questions(
+                            questionId int,
+                            formId int,
+                            question text,
+                            format text,
+                            created timestamp,
+                            PRIMARY KEY(questionId));'''
+            self.session.execute(createQuery)
+            logging.info("Questions table found sucessfully")
+        except:
+            logging.exception("Error while connecting to questions table",exc_info=True)
 
     def add_question(self,data):
         insertQuery = '''
