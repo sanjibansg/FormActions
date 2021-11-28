@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from fastapi_utils.tasks import repeat_every
 from pydantic import BaseModel
 
 import datetime
