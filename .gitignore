@@ -130,3 +130,6 @@ dmypy.json
 
 # cassandra database folder
 data/
+
+# logs
+logs/

@@ -1,24 +1,34 @@
-from model import model
+from .model import model
 import datetime
+from utils import logger
 
 class form_model(model):
     def __init__(self):
-        super().__init()
-        createQuery = '''
-                         CREATE TYPE IF NOT EXISTS action(
-                             actionId int,
-                             trigger text
-                         );
-                         CREATE TABLE IF NOT EXISTS forms(
-                         formId int,
-                         clientId int,
-                         questions list<int>,
-                         responses list<int>,
-                         actions list<action>,
-                         created timestamp,
-                         deadline timestamp,
-                         PRIMARY KEY(formId));'''
-        self.session.execute(createQuery)
+        logging=logger("form model init")
+        try:
+            logging.info("[Connecting to Cassandra] Checking for forms table")
+            super().__init__()
+            createTypeQuery = '''
+                            CREATE TYPE IF NOT EXISTS action(
+                                actionId int,
+                                trigger text
+                            );'''
+            self.session.execute(createTypeQuery)
+            createQuery='''
+                            CREATE TABLE IF NOT EXISTS forms(
+                            formId int,
+                            clientId int,
+                            questions list<int>,
+                            responses list<int>,
+                            actions list<frozen <action>>,
+                            created timestamp,
+                            deadline timestamp,
+                            PRIMARY KEY(formId));
+                        '''
+            self.session.execute(createQuery)
+            logging.info("Forms table found sucessfully")
+        except Exception:
+            logging.exception("Error while connecting to forms table",exc_info=True)
 
     def add_form(self,data):
         insertQuery = '''
