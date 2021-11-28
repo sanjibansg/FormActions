@@ -13,7 +13,7 @@ class response_model(model):
                          responseId int,
                          formId int,
                          userId text,
-                         responses set<response>,
+                         responses list<response>,
                          created timestamp,
                          PRIMARY KEY(responseId));'''
         self.session.execute(createQuery)

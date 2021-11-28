@@ -9,6 +9,7 @@ import actions
 
 from redis import Redis
 from rq import Queue
+from rq_scheduler import Scheduler
 
 class formData(BaseModel):
     formID: int
@@ -33,13 +34,13 @@ class responseData(BaseModel):
     responseID: int
     formID: int
     userID: int
-    responses: list # response is a list of [{questionID: answerID}]
+    responses: list # response is a list of [{questionId: {questionID},answerId:{answerID}}]
 
 app = FastAPI()
 
 @app.on_event("startup")
 def initializeDatabase():
-    global db,formDB,responseDB,questionDB,answerDB,actionDB
+    global formDB,responseDB,questionDB,answerDB,actionDB
     formDB = db.form_model()
     responseDB = db.response_model()
     questionDB = db.question_model()
@@ -48,9 +49,9 @@ def initializeDatabase():
 
 @app.on_event("startup")
 def initializeRedisQueue():
-    global queue
+    global queue,scheduler
     queue = Queue(connection=Redis())
-
+    scheduler = Scheduler(queue=queue)
 
 @app.post("/createForm/")
 def createForm(data: formData):
@@ -64,7 +65,11 @@ def createForm(data: formData):
     for action_data in data.actions:
         if action_data['trigger']=='on_deadline':
             action_func = actionDB.fetch_action(action_data['actionId'])
-            result = queue.enqueue_at(getattr(data.deadline,actions,action_func[0]['action']))
+            result = queue.enqueue_at(data.deadline,getattr(actions,action_func[0]['action']))
+        elif action_data['trigger']=='daily':
+            action_func = actionDB.fetch_action(action_data['actionId'])
+            result = scheduler.cron(cron_string="0 5 * * *",func=getattr(data.deadline,actions,action_func[0]['action']))
+
 
 @app.post("/createQuestion/")
 def createQuestion(data: questionData):

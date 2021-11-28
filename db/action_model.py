@@ -7,14 +7,15 @@ class action_model(model):
                          CREATE TABLE IF NOT EXISTS actions(
                          actionId int,
                          action text,
+                         meta   list<text>
                          PRIMARY KEY(actionId));'''
         self.session.execute(createQuery)
 
     def add_action(self,data):
         insertQuery = '''
                       INSERT INTO actions
-                      VALUES({actionId},{action});
-                      '''.format(actionId=data['actionId'],action=data['action'])
+                      VALUES({actionId},{action},{meta});
+                      '''.format(actionId=data['actionId'],action=data['action'],meta=data['meta'])
         self.session.execute(insertQuery)
 
     def fetch_action(self,actionId):
