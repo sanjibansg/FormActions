@@ -4,7 +4,7 @@ from healthcheck import db_health
 from db import form_model
 
 
-def insert_form(data, formDB):
+async def insert_form(data, formDB):
     """Function for inserting form via forms model object
 
     :param data: FastAPI BaseModel object containing the essential properties

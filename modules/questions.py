@@ -4,7 +4,7 @@ from healthcheck import db_health
 from db import question_model, form_model
 
 
-def insert_question(data, questionDB, formDB):
+async def insert_question(data, questionDB, formDB):
     """Function for inserting question via questions model object
 
     :param data: FastAPI BaseModel object containing the essential properties
@@ -23,6 +23,8 @@ def insert_question(data, questionDB, formDB):
         questionId = questionDB.add_question(
             {"formId": data.formID, "question": data.question, "format": data.format}
         )
+
+        # updating form record with added question
         formDB.add_question(formId=data.formID, questionId=questionId)
         return questionId
 

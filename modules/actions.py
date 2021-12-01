@@ -4,10 +4,11 @@ import actions
 from db import form_model, action_model
 
 from redis import Redis
+from rq import Queue
 from rq_scheduler import Scheduler
 
 
-def register_actions(data, formDB, actionDB, scheduler):
+async def register_actions(data, formDB, actionDB, queue, scheduler):
     """Function for registering actions into a form
 
     :param data: FastAPI BaseModel object containing the essential properties
@@ -30,17 +31,32 @@ def register_actions(data, formDB, actionDB, scheduler):
                 "meta": data.meta,
             }
         )
+
+        # Updating form with registered action
         formDB.add_action(formId=data.formID, actionId=actionId)
 
-        if scheduler is None or not redis_health():
-            scheduler = Scheduler(connection=Redis())
-        if data.trigger == "daily":
-            action_data = data.__dict__
-            action_data["actionId"] = actionId
+        # enqueuing action if registered to be called on deadline
+        action_data = data.__dict__
+        action_data["actionId"] = actionId
+        if queue is None or not redis_health():
+            queue = Queue(connection=Redis())
+        if data.trigger == "on_deadline":
+            form_data = formDB.fetch_form(data.formID).one()
             result = scheduler.cron(
                 cron_string="0 5 * * *",
                 func=getattr(actions, data.action),
                 args=[action_data],
+            )
+            result = queue.enqueue_at(form_data['deadline'], getattr(actions, action_data["action"]),  args=(action_data))
+
+        # scheduling action if registered to be called on deadline
+        if scheduler is None or not redis_health():
+            scheduler = Scheduler(connection=Redis())
+        if data.trigger == "daily":
+            result = scheduler.cron(
+                cron_string="0 5 * * *",
+                func=getattr(actions, data.action),
+                args=[action_data]
             )
 
     except Exception:

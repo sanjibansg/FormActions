@@ -7,7 +7,7 @@ from redis import Redis
 from rq import Queue
 
 
-def insert_response(data, responseDB, formDB, actionDB, queue):
+async def insert_response(data, responseDB, formDB, actionDB, queue):
     """Function for inserting response via responses model object
 
     :param data: FastAPI BaseModel object containing the essential properties

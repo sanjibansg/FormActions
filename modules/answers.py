@@ -3,7 +3,7 @@ from healthcheck import db_health
 from db import answer_model
 
 
-def insert_answer(data, answerDB):
+async def insert_answer(data, answerDB):
     """Function for inserting answers via answer model object
 
     :param data: FastAPI BaseModel object containing the essential properties
