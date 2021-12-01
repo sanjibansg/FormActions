@@ -51,7 +51,7 @@ queue, scheduler = None, None
 
 
 @app.on_event("startup")
-async def initialize():
+def initialize():
     logging = logger("cassandraDB")
     try:
         logging.info("Establishing CassandraDB Connection")
@@ -76,31 +76,41 @@ async def initialize():
         logging.exception("Redis Connection failed ", exc_info=True)
 
 
+@app.get("/")
+def ping():
+    return {"api_service": "up and running"}
+
+
 @app.post("/createForm/")
 async def createForm(data: formData):
     global formDB
-    return modules.insert_form(data, formDB)
+    result = await modules.insert_form(data, formDB)
+    return result
 
 
 @app.post("/createQuestion/")
 async def createQuestion(data: questionData):
     global questionDB, formDB
-    return modules.insert_question(data, questionDB, formDB)
+    result = await modules.insert_question(data, questionDB, formDB)
+    return result
 
 
 @app.post("/createAnswer/")
 async def createAnswer(data: answerData):
     global answerDB
-    return modules.insert_answer(data, answerDB)
+    result = await modules.insert_answer(data, answerDB)
+    return result
 
 
 @app.post("/createResponse/")
 async def createResponse(data: responseData):
     global responseDB, formDB, actionDB, queue
-    return modules.insert_response(data, responseDB, formDB, actionDB, queue)
+    result = await modules.insert_response(data, responseDB, formDB, actionDB, queue)
+    return result
 
 
 @app.post("/registerAction/")
 async def registerAction(data: actionData):
     global formDB, actionDB, scheduler
-    return modules.register_actions(data, formDB, actionDB, scheduler)
+    result = await modules.register_actions(data, formDB, actionDB, queue, scheduler)
+    return result
