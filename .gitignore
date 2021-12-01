@@ -133,3 +133,7 @@ data/
 
 # logs
 logs/
+
+# docs
+_build
+*.rst
