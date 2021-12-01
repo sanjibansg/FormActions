@@ -1,1 +1,2 @@
-from .health import db_health,redis_health
+from .db_health import db_health
+from .redis_health import redis_health
