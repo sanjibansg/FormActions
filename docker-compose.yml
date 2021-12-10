@@ -1,0 +1,50 @@
+version: '3'
+
+services:
+  redis:
+    image: redis
+    networks:
+    - formactions_network
+
+  cassandra-node1:
+    image: bitnami/cassandra:latest
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d
+    environment:
+      - CASSANDRA_CLUSTER_NAME=cassandra-cluster
+      - CASSANDRA_SEEDS=cassandra-node1,cassandra-node2
+      - CASSANDRA_PASSWORD_SEEDER=yes
+      - CASSANDRA_DATACENTER=FormCenter
+    networks:
+      - formactions_network
+
+
+  cassandra-node2:
+    image: bitnami/cassandra:latest
+    environment:
+      - CASSANDRA_CLUSTER_NAME=cassandra-cluster
+      - CASSANDRA_SEEDS=cassandra-node1,cassandra-node2
+      - CASSANDRA_DATACENTER=FormCenter
+    networks:
+      - formactions_network
+
+
+  apiservice:
+    build: .
+    ports:
+    - "84:84"
+    networks:
+    - formactions_network
+    depends_on:
+    - redis
+    - cassandra-node1
+    environment:
+    - CLIENT_SLEEP=0.25
+    - CLIENT_MAX_TRIES=100
+    deploy:
+      placement:
+        constraints:
+        - node.role == manager
+
+networks:
+    formactions_network:

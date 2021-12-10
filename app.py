@@ -4,7 +4,9 @@ from pydantic import BaseModel
 
 import datetime
 
-import db
+from db import model
+from cassandra.cqlengine import connection
+
 from utils import logger
 from healthcheck import db_health, redis_health
 import modules
@@ -46,21 +48,15 @@ class actionData(BaseModel):
 app = FastAPI()
 app.add_api_route("/health", health([db_health, redis_health]))
 
-formDB, responseDB, questionDB, answerDB, actionDB = [None] * 5
 queue, scheduler = None, None
-
 
 @app.on_event("startup")
 def initialize():
     logging = logger("cassandraDB")
     try:
         logging.info("Establishing CassandraDB Connection")
-        global formDB, responseDB, questionDB, answerDB, actionDB
-        formDB = db.form_model()
-        responseDB = db.response_model()
-        questionDB = db.question_model()
-        answerDB = db.answer_model()
-        actionDB = db.action_model()
+        db_conn = model()
+        connection.register_connection('FormCluster',session=db_conn.get_session_object())
         logging.info("CassandraDB Connection established sucessfully!")
     except Exception:
         logging.exception("CassandraDB Connection failed ", exc_info=True)
@@ -83,34 +79,31 @@ def ping():
 
 @app.post("/createForm/")
 async def createForm(data: formData):
-    global formDB
-    result = await modules.insert_form(data, formDB)
+    result = await modules.insert_form(data)
     return result
 
 
 @app.post("/createQuestion/")
 async def createQuestion(data: questionData):
-    global questionDB, formDB
-    result = await modules.insert_question(data, questionDB, formDB)
+    result = await modules.insert_question(data)
     return result
 
 
 @app.post("/createAnswer/")
 async def createAnswer(data: answerData):
-    global answerDB
-    result = await modules.insert_answer(data, answerDB)
+    result = await modules.insert_answer(data)
     return result
 
 
 @app.post("/createResponse/")
 async def createResponse(data: responseData):
-    global responseDB, formDB, actionDB, queue
-    result = await modules.insert_response(data, responseDB, formDB, actionDB, queue)
+    global queue
+    result = await modules.insert_response(data,queue)
     return result
 
 
 @app.post("/registerAction/")
 async def registerAction(data: actionData):
-    global formDB, actionDB, scheduler
-    result = await modules.register_actions(data, formDB, actionDB, queue, scheduler)
+    global queue, scheduler
+    result = await modules.register_actions(data, queue, scheduler)
     return result

@@ -1,10 +1,12 @@
-from db.form_model import form_model
+import uuid
+import datetime
 from utils import logger
 from healthcheck import db_health
 from db import question_model, form_model
+from cassandra.cqlengine.management import sync_table
 
 
-async def insert_question(data, questionDB, formDB):
+async def insert_question(data):
     """Function for inserting question via questions model object
 
     :param data: FastAPI BaseModel object containing the essential properties
@@ -15,18 +17,17 @@ async def insert_question(data, questionDB, formDB):
     """
     logging = logger("create question")
     try:
-        if questionDB is None or not db_health():
-            questionDB = question_model()
-        if formDB is None or not db_health():
-            formDB = form_model()
+        db_healthcheck = db_health()
+        if db_healthcheck == {"db_health": "unavailable"}:
+            raise Exception('Database healthcheck failed')
+        sync_table(question_model)
+        sync_table(form_model)
         logging.info("Creating new question")
-        questionId = questionDB.add_question(
-            {"formId": data.formID, "question": data.question, "format": data.format}
-        )
+        result = question_model.create(questionID=uuid.uuid4(),formID=data.formID,question=data.question,question_format=data.format,created=datetime.datetime.now())
 
         # updating form record with added question
-        formDB.add_question(formId=data.formID, questionId=questionId)
-        return questionId
+        form_model.objects(formID=data.formID).if_exists().update(questions__append=result.questionID)
+        return result.questionID
 
     except Exception:
         logging.exception("Creating new question failed ", exc_info=True)

@@ -1,6 +1,9 @@
+import uuid
 from utils import logger
 from healthcheck import db_health
+
 from db import answer_model
+from cassandra.cqlengine.management import sync_table
 
 
 async def insert_answer(data, answerDB):
@@ -13,13 +16,13 @@ async def insert_answer(data, answerDB):
     """
     logging = logger("create answer")
     try:
-        if answerDB is None or not db_health():
-            answerDB = answer_model()
+        db_healthcheck = db_health()
+        if db_healthcheck == {"db_health": "unavailable"}:
+            raise Exception('Database healthcheck failed')
         logging.info("Creating new answer")
-        answerId = answerDB.add_answer(
-            {"questionId": data.questionID, "answer": data.answer}
-        )
-        return answerId
+        sync_table(answer_model)
+        result=answer_model.create(answerID=uuid.uuid4(),questionID=data.questionID,answer=data.answer)
+        return result.answerID
     except Exception:
         logging.exception("Creating new answer failed ", exc_info=True)
         return False

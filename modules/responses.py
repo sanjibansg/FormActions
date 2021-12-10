@@ -1,6 +1,11 @@
+import uuid
+import datetime
 from utils import logger
 from healthcheck import db_health, redis_health
+
+from cassandra.cqlengine.management import sync_table
 from db import response_model, form_model, action_model
+
 import actions
 
 from redis import Redis
@@ -20,37 +25,37 @@ async def insert_response(data, responseDB, formDB, actionDB, queue):
     """
     logging = logger("create response")
     try:
-        if responseDB is None or not db_health():
-            responseDB = response_model()
-        if formDB is None or not db_health():
-            formDB = form_model()
-        if actionDB is None or not db_health():
-            actionDB = action_model()
+        db_healthcheck = db_health()
+        if db_healthcheck == {"db_health": "unavailable"}:
+            raise Exception('Database healthcheck failed')
+        sync_table(response_model)
+        sync_table(form_model)
+        sync_table(action_model)
+
         if queue is None or not redis_health():
             queue = Queue(connection=Redis())
-
         logging.info("Redis Connection sucessfully established")
+
         logging.info("Creating new response")
-        responseId = responseDB.add_response(
-            {"formId": data.formID, "userId": data.userID, "responses": data.responses}
-        )
+        result = response_model.create(responseID=uuid.uuid4(),formID=data.formID,userID=data.userID,responses=data.responses,created=datetime.datetime.now())
 
         # recording response into the form
-        formDB.add_response(data.formID, responseId)
+        form_model.objects(formID=data.formID).if_exists().update(responses__append=result.responseID)
+
 
         # enqueing actions required to be triggered after every response
-        fetch_form = formDB.fetch_form(data.formID)
+        fetch_form = form_model.objects.filter(formID=data.formID)
         logging.info("Triggering actions for the response if any")
 
-        for actionId in fetch_form.one()["actions"]:
-            action_data = actionDB.fetch_action(actionId).one()
-            if action_data["trigger"] == "after_every_response":
-                action_data["responseId"] = responseId
-                result = queue.enqueue(
+        for actionId in fetch_form.actions:
+            action_data = action_model.objects.filter(actionID=actionId)
+            if action_data.trigger == "after_every_response":
+                action_data.responseId = result.responseID
+                result_queue = queue.enqueue(
                     getattr(actions, action_data["action"]), args=(action_data)
                 )
-                return responseId, result
-        return responseId
+                return result.responseID, result_queue
+        return result.responseID
     except Exception:
         logging.exception("Creating new response failed ", exc_info=True)
         return False

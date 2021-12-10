@@ -3,9 +3,8 @@ from cassandra.query import dict_factory
 
 from utils import logger
 
-
 class model:
-    """Parent Class for handling database models"""
+    """Class for handling database connections"""
 
     def __init__(self):
         logging = logger("action model init")
