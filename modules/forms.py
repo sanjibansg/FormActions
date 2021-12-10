@@ -1,7 +1,11 @@
-from db.form_model import form_model
+import uuid
+import datetime
 from utils import logger
+
 from healthcheck import db_health
 from db import form_model
+from cassandra.cqlengine.management import sync_table
+
 
 
 async def insert_form(data, formDB):
@@ -14,12 +18,14 @@ async def insert_form(data, formDB):
     """
     logging = logger("create form")
     try:
-        if formDB is None or not db_health():
-            formDB = form_model()
+        db_healthcheck = db_health()
+        if db_healthcheck == {"db_health": "unavailable"}:
+            raise Exception('Database healthcheck failed')
         logging.info("Creating new form")
-        formId = formDB.add_form({"clientId": data.clientID, "deadline": data.deadline})
+        sync_table(form_model)
+        result=form_model.create(formID=uuid.uuid4(),clientID=data.clientID,deadline=data.deadline,created=datetime.datetime.now())
         logging.info("Form details added to DB successfully")
-        return formId
+        return result.formID
     except Exception:
         logging.exception("Creating new form failed ", exc_info=True)
         return False
