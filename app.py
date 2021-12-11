@@ -1,3 +1,4 @@
+import glob
 from fastapi import FastAPI
 from fastapi_health import health
 from pydantic import BaseModel
@@ -50,16 +51,35 @@ app.add_api_route("/health", health([db_health, redis_health]))
 
 queue, scheduler = None, None
 
+
 @app.on_event("startup")
 def initialize():
     logging = logger("cassandraDB")
     try:
         logging.info("Establishing CassandraDB Connection")
         db_conn = model()
-        connection.register_connection('FormCluster',session=db_conn.get_session_object())
+        connection.register_connection(
+            "FormCluster", session=db_conn.get_session_object()
+        )
         logging.info("CassandraDB Connection established sucessfully!")
     except Exception:
         logging.exception("CassandraDB Connection failed ", exc_info=True)
+
+    try:
+        logging.info("Instantiating tables in keyspace if they don't exist")
+        cql_files = [f for f in glob.glob("db/init/*.cql")]
+        session = db_conn.get_session_object()
+        for file in cql_files:
+            with open(".db/init/" + file, mode="r") as f:
+                lines = f.read()
+                statements = lines.split(r";")
+                for i in statements:
+                    statement = i.strip()
+                    if statement != "":
+                        session.execute(statement)
+        logging.info("All tables found/instantiated.")
+    except Exception:
+        logging.exception("Error while finding/instantiating tables ", exc_info=True)
 
     logging = logger("redis")
     try:
@@ -98,7 +118,7 @@ async def createAnswer(data: answerData):
 @app.post("/createResponse/")
 async def createResponse(data: responseData):
     global queue
-    result = await modules.insert_response(data,queue)
+    result = await modules.insert_response(data, queue)
     return result
 
 

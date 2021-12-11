@@ -19,14 +19,22 @@ async def insert_question(data):
     try:
         db_healthcheck = db_health()
         if db_healthcheck == {"db_health": "unavailable"}:
-            raise Exception('Database healthcheck failed')
+            raise Exception("Database healthcheck failed")
         sync_table(question_model)
         sync_table(form_model)
         logging.info("Creating new question")
-        result = question_model.create(questionID=uuid.uuid4(),formID=data.formID,question=data.question,question_format=data.format,created=datetime.datetime.now())
+        result = question_model.create(
+            questionID=uuid.uuid4(),
+            formID=data.formID,
+            question=data.question,
+            question_format=data.format,
+            created=datetime.datetime.now(),
+        )
 
         # updating form record with added question
-        form_model.objects(formID=data.formID).if_exists().update(questions__append=result.questionID)
+        form_model.objects(formID=data.formID).if_exists().update(
+            questions__append=result.questionID
+        )
         return result.questionID
 
     except Exception:

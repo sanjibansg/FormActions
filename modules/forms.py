@@ -7,7 +7,6 @@ from db import form_model
 from cassandra.cqlengine.management import sync_table
 
 
-
 async def insert_form(data, formDB):
     """Function for inserting form via forms model object
 
@@ -20,10 +19,15 @@ async def insert_form(data, formDB):
     try:
         db_healthcheck = db_health()
         if db_healthcheck == {"db_health": "unavailable"}:
-            raise Exception('Database healthcheck failed')
+            raise Exception("Database healthcheck failed")
         logging.info("Creating new form")
         sync_table(form_model)
-        result=form_model.create(formID=uuid.uuid4(),clientID=data.clientID,deadline=data.deadline,created=datetime.datetime.now())
+        result = form_model.create(
+            formID=uuid.uuid4(),
+            clientID=data.clientID,
+            deadline=data.deadline,
+            created=datetime.datetime.now(),
+        )
         logging.info("Form details added to DB successfully")
         return result.formID
     except Exception:

@@ -3,6 +3,7 @@ from cassandra.query import dict_factory
 
 from utils import logger
 
+
 class model:
     """Class for handling database connections"""
 
