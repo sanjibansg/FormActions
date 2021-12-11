@@ -24,16 +24,23 @@ async def register_actions(data, queue, scheduler):
     try:
         db_healthcheck = db_health()
         if db_healthcheck == {"db_health": "unavailable"}:
-            raise Exception('Database healthcheck failed')
+            raise Exception("Database healthcheck failed")
 
         logging.info("Registering new action")
         sync_table(action_model)
         sync_table(form_model)
-        result = action_model.create(actionID=uuid.uuid4(),formID = data.formID, action = data.action, trigger = data.trigger, meta= [Meta(i["meta_property"], i["meta_value"]) for i in data["meta"]])
+        result = action_model.create(
+            actionID=uuid.uuid4(),
+            formID=data.formID,
+            action=data.action,
+            trigger=data.trigger,
+            meta=[Meta(i["meta_property"], i["meta_value"]) for i in data["meta"]],
+        )
 
         # Updating form with registered action
-        form_model.objects(formID=data.formID).if_exists().update(actions__append=str(result.actionID))
-
+        form_model.objects(formID=data.formID).if_exists().update(
+            actions__append=str(result.actionID)
+        )
 
         # enqueuing action if registered to be called on deadline
         action_data = data.__dict__
@@ -47,7 +54,11 @@ async def register_actions(data, queue, scheduler):
                 func=getattr(actions, data.action),
                 args=[action_data],
             )
-            result = queue.enqueue_at(form_data['deadline'], getattr(actions, action_data["action"]),  args=(action_data))
+            result = queue.enqueue_at(
+                form_data["deadline"],
+                getattr(actions, action_data["action"]),
+                args=(action_data),
+            )
 
         # scheduling action if registered to be called on deadline
         if scheduler is None or not redis_health():
@@ -56,9 +67,9 @@ async def register_actions(data, queue, scheduler):
             result = scheduler.cron(
                 cron_string="0 5 * * *",
                 func=getattr(actions, data.action),
-                args=[action_data]
+                args=[action_data],
             )
-        return action_data['actionId']
+        return action_data["actionId"]
 
     except Exception:
         logging.exception("Registering action failed ", exc_info=True)

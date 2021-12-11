@@ -27,7 +27,7 @@ async def insert_response(data, responseDB, formDB, actionDB, queue):
     try:
         db_healthcheck = db_health()
         if db_healthcheck == {"db_health": "unavailable"}:
-            raise Exception('Database healthcheck failed')
+            raise Exception("Database healthcheck failed")
         sync_table(response_model)
         sync_table(form_model)
         sync_table(action_model)
@@ -37,11 +37,18 @@ async def insert_response(data, responseDB, formDB, actionDB, queue):
         logging.info("Redis Connection sucessfully established")
 
         logging.info("Creating new response")
-        result = response_model.create(responseID=uuid.uuid4(),formID=data.formID,userID=data.userID,responses=data.responses,created=datetime.datetime.now())
+        result = response_model.create(
+            responseID=uuid.uuid4(),
+            formID=data.formID,
+            userID=data.userID,
+            responses=data.responses,
+            created=datetime.datetime.now(),
+        )
 
         # recording response into the form
-        form_model.objects(formID=data.formID).if_exists().update(responses__append=result.responseID)
-
+        form_model.objects(formID=data.formID).if_exists().update(
+            responses__append=result.responseID
+        )
 
         # enqueing actions required to be triggered after every response
         fetch_form = form_model.objects.filter(formID=data.formID)

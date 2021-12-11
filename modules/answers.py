@@ -18,10 +18,12 @@ async def insert_answer(data, answerDB):
     try:
         db_healthcheck = db_health()
         if db_healthcheck == {"db_health": "unavailable"}:
-            raise Exception('Database healthcheck failed')
+            raise Exception("Database healthcheck failed")
         logging.info("Creating new answer")
         sync_table(answer_model)
-        result=answer_model.create(answerID=uuid.uuid4(),questionID=data.questionID,answer=data.answer)
+        result = answer_model.create(
+            answerID=uuid.uuid4(), questionID=data.questionID, answer=data.answer
+        )
         return result.answerID
     except Exception:
         logging.exception("Creating new answer failed ", exc_info=True)
