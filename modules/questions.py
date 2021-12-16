@@ -19,7 +19,7 @@ async def insert_question(data):
         db_healthcheck = db_health()
         if db_healthcheck == {"db_health": "unavailable"}:
             raise Exception("Database healthcheck failed")
-        logging.info("Creating new question")
+        logging.info("[question_model] Creating new question")
         result = question_model.create(
             question_id=uuid.uuid4(),
             form_id=data.formID,
@@ -29,6 +29,7 @@ async def insert_question(data):
         )
 
         # updating form record with added question
+        logging.info("[question_model] Updating forms table with new question")
         session=model().get_session_object()
         session.execute("""
                         UPDATE forms
@@ -37,6 +38,7 @@ async def insert_question(data):
                         """.format(
                 question=str(result.question_id), formId=data.formID
             ))
+        logging.info("[question_model] New answer creation was successful")
         return result.question_id
 
     except Exception:

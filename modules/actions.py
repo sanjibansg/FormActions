@@ -25,7 +25,7 @@ async def register_actions(data, queue, scheduler):
         if db_healthcheck == {"db_health": "unavailable"}:
             raise Exception("Database healthcheck failed")
 
-        logging.info("Registering new action")
+        logging.info("[action_model] Registering new action")
         result = action_model.create(
             action_id=uuid.uuid4(),
             form_id=data.formID,
@@ -37,6 +37,7 @@ async def register_actions(data, queue, scheduler):
             ],
         )
 
+        logging.info("[action_model] Updating forms with new action")
         # Updating form with registered action
         session=model().get_session_object()
         session.execute(
@@ -45,6 +46,7 @@ async def register_actions(data, queue, scheduler):
                 )
             )
 
+        logging.info("[action_model] Scheduling actions if any")
         # enqueuing action if registered to be called on deadline
         action_data = data.__dict__
         action_data["actionId"] = result.action_id
@@ -72,6 +74,7 @@ async def register_actions(data, queue, scheduler):
                 func=getattr(actions, data.action),
                 args=[action_data],
             )
+        logging.info("[action_model] Registering action was successful")
         return action_data["actionId"]
 
     except Exception:

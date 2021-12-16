@@ -19,14 +19,14 @@ async def insert_form(data):
         db_healthcheck = db_health()
         if db_healthcheck == {"db_health": "unavailable"}:
             raise Exception("Database healthcheck failed")
-        logging.info("Creating new form")
+        logging.info("[forms_model] Creating new form")
         result = form_model.create(
             form_id=uuid.uuid4(),
             client_id=data.clientID,
             deadline=data.deadline,
             created=datetime.datetime.now(),
         )
-        logging.info("Form details added to DB successfully")
+        logging.info("[form_model] New answer creation was successful")
         return result.form_id
     except Exception:
         logging.exception("Creating new form failed ", exc_info=True)

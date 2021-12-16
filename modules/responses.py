@@ -32,7 +32,7 @@ async def insert_response(data, queue):
             queue = Queue(connection=Redis())
         logging.info("Redis Connection sucessfully established")
 
-        logging.info("Creating new response")
+        logging.info("[response_model] Creating new response")
         result = response_model.create(
             response_id=uuid.uuid4(),
             form_id=data.formID,
@@ -42,6 +42,7 @@ async def insert_response(data, queue):
         )
 
         # recording response into the form
+        logging.info("[response_model] Updating forms table with new response")
         session=model().get_session_object()
         session.execute('''
                         UPDATE forms
@@ -51,8 +52,7 @@ async def insert_response(data, queue):
 
         # enqueing actions required to be triggered after every response
         fetch_form = form_model.get(form_id=data.formID)
-        logging.info(fetch_form)
-        logging.info("Triggering actions for the response if any")
+        logging.info("[response_model] Triggering actions for the response if any")
 
         for actionId in fetch_form.actions:
             action_data = action_model.get(action_id=actionId)
@@ -61,7 +61,9 @@ async def insert_response(data, queue):
                 result_queue = queue.enqueue(
                     getattr(actions, action_data["action"]), args=(action_data)
                 )
+                logging.info("[response_model] New response creation was successful")
                 return result.response_id, result_queue
+        logging.info("[response_model] New response creation was successful")
         return result.response_id
     except Exception:
         logging.exception("Creating new response failed ", exc_info=True)
