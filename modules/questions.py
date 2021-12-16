@@ -2,8 +2,7 @@ import uuid
 import datetime
 from utils import logger
 from healthcheck import db_health
-from db import question_model, form_model
-from cassandra.cqlengine.management import sync_table
+from db import model, question_model
 
 
 async def insert_question(data):
@@ -20,22 +19,25 @@ async def insert_question(data):
         db_healthcheck = db_health()
         if db_healthcheck == {"db_health": "unavailable"}:
             raise Exception("Database healthcheck failed")
-        sync_table(question_model)
-        sync_table(form_model)
         logging.info("Creating new question")
         result = question_model.create(
-            questionID=uuid.uuid4(),
-            formID=data.formID,
+            question_id=uuid.uuid4(),
+            form_id=data.formID,
             question=data.question,
             question_format=data.format,
             created=datetime.datetime.now(),
         )
 
         # updating form record with added question
-        form_model.objects(formID=data.formID).if_exists().update(
-            questions__append=result.questionID
-        )
-        return result.questionID
+        session=model().get_session_object()
+        session.execute("""
+                        UPDATE forms
+                        SET questions = questions + ['{question}']
+                        WHERE form_id={formId};
+                        """.format(
+                question=str(result.question_id), formId=data.formID
+            ))
+        return result.question_id
 
     except Exception:
         logging.exception("Creating new question failed ", exc_info=True)

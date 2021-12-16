@@ -4,8 +4,7 @@ from healthcheck import db_health, redis_health
 
 import actions
 
-from db import form_model, action_model, action_meta
-from cassandra.cqlengine.management import sync_table
+from db import model, form_model, action_model, action_meta_data
 
 from redis import Redis
 from rq import Queue
@@ -27,28 +26,32 @@ async def register_actions(data, queue, scheduler):
             raise Exception("Database healthcheck failed")
 
         logging.info("Registering new action")
-        sync_table(action_model)
-        sync_table(form_model)
         result = action_model.create(
-            actionID=uuid.uuid4(),
-            formID=data.formID,
+            action_id=uuid.uuid4(),
+            form_id=data.formID,
             action=data.action,
             trigger=data.trigger,
-            meta=[Meta(i["meta_property"], i["meta_value"]) for i in data["meta"]],
+            meta=[
+                action_meta_data(meta_property=i["meta_property"], meta_value=i["meta_value"])
+                for i in data.meta
+            ],
         )
 
         # Updating form with registered action
-        form_model.objects(formID=data.formID).if_exists().update(
-            actions__append=str(result.actionID)
-        )
+        session=model().get_session_object()
+        session.execute(
+                "UPDATE forms SET actions = actions+['{actionId}'] WHERE form_id = {formId};".format(
+                    actionId=str(result.action_id), formId=data.formID
+                )
+            )
 
         # enqueuing action if registered to be called on deadline
         action_data = data.__dict__
-        action_data["actionId"] = result.actionID
+        action_data["actionId"] = result.action_id
         if queue is None or not redis_health():
             queue = Queue(connection=Redis())
         if data.trigger == "on_deadline":
-            form_data = form_model.objects(formID=data.formID)
+            form_data = form_model.objects(form_id=data.formID)
             result = scheduler.cron(
                 cron_string="0 5 * * *",
                 func=getattr(actions, data.action),

@@ -7,8 +7,8 @@ class response_model(Model):
 
     __keyspace__ = "formactions"
     __table_name__ = "responses"
-    responseID = UUID(primary_key=True)
-    formID = Text()
-    userID = Text()
+    response_id = UUID(primary_key=True)
+    form_id = Text()
+    user_id = Text()
     responses = List(Text)
     created = DateTime()

@@ -1,3 +1,4 @@
+import os
 import glob
 from fastapi import FastAPI
 from fastapi_health import health
@@ -5,8 +6,19 @@ from pydantic import BaseModel
 
 import datetime
 
-from db import model
+from db import (
+    model,
+    action_model,
+    form_model,
+    response_model,
+    question_model,
+    answer_model,
+)
+from db import action_meta_data
 from cassandra.cqlengine import connection
+from cassandra.cqlengine.management import sync_table
+from cassandra.cqlengine import management
+
 
 from utils import logger
 from healthcheck import db_health, redis_health
@@ -57,6 +69,8 @@ def initialize():
     logging = logger("cassandraDB")
     try:
         logging.info("Establishing CassandraDB Connection")
+        if os.getenv("CQLENG_ALLOW_SCHEMA_MANAGEMENT") is None:
+            os.environ["CQLENG_ALLOW_SCHEMA_MANAGEMENT"] = "1"
         db_conn = model()
         connection.register_connection(
             "FormCluster", session=db_conn.get_session_object()
@@ -70,7 +84,7 @@ def initialize():
         cql_files = [f for f in glob.glob("db/init/*.cql")]
         session = db_conn.get_session_object()
         for file in cql_files:
-            with open(".db/init/" + file, mode="r") as f:
+            with open(file, mode="r") as f:
                 lines = f.read()
                 statements = lines.split(r";")
                 for i in statements:
@@ -80,6 +94,18 @@ def initialize():
         logging.info("All tables found/instantiated.")
     except Exception:
         logging.exception("Error while finding/instantiating tables ", exc_info=True)
+
+    try:
+        logging.info("Syncing tables for object mapping")
+        management.sync_type("formactions", action_meta_data)
+        sync_table(action_model)
+        sync_table(form_model)
+        sync_table(question_model)
+        sync_table(answer_model)
+        sync_table(response_model)
+        logging.info("All tables synced")
+    except Exception:
+        logging.exception("Error while syncing tables ", exc_info=True)
 
     logging = logger("redis")
     try:
