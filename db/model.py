@@ -1,5 +1,7 @@
 from cassandra.cluster import Cluster
 from cassandra.query import dict_factory
+from cassandra.auth import PlainTextAuthProvider
+from cassandra.cqlengine import connection
 
 from utils import logger
 
@@ -10,7 +12,12 @@ class model:
     def __init__(self):
         logging = logger("action model init")
         try:
-            self.cluster = Cluster()
+            auth_provider = PlainTextAuthProvider(
+                username="cassandra", password="cassandra"
+            )
+            self.cluster = Cluster(
+                ["172.30.0.2", "172.30.0.3"], auth_provider=auth_provider
+            )
             self.session = self.cluster.connect()
             self.session.execute(
                 """CREATE KEYSPACE IF NOT EXISTS formactions
@@ -18,6 +25,9 @@ class model:
             )
             self.session = self.cluster.connect("formactions")
             self.session.row_factory = dict_factory
+            connection.register_connection("cluster1", ["172.30.0.2"], default=True)
+            connection.set_default_connection("cluster1")
+
         except Exception:
             logging.exception(
                 "Error while connecting to cassandra cluster", exc_info=True

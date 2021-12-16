@@ -3,41 +3,117 @@ version: '3'
 services:
   redis:
     image: redis
+    logging:
+      driver: none
+    healthcheck:
+      test: ["CMD", "redis-cli","ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     networks:
-    - formactions_network
+            formactions_network:
+                ipv4_address: 172.30.0.4
 
-  cassandra-node1:
-    image: bitnami/cassandra:latest
+  cassandra_node1:
+    container_name: cassandra_node1
+    image: cassandra:latest
+    hostname: cassandra_node1
+    networks:
+            formactions_network:
+                ipv4_address: 172.30.0.2
     volumes:
-      - ./db/init:/docker-entrypoint-initdb.d
+      - ./data/node1:/var/lib/cassandra/data
+    ports:
+      - 9042:9042
+    logging:
+       driver: none
     environment:
-      - CASSANDRA_CLUSTER_NAME=cassandra-cluster
-      - CASSANDRA_SEEDS=cassandra-node1,cassandra-node2
+      - CASSANDRA_START_RPC=true
+      - CASSANDRA_CLUSTER_NAME=FormCluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=FormCenter
       - CASSANDRA_PASSWORD_SEEDER=yes
-      - CASSANDRA_DATACENTER=FormCenter
+      - CASSANDRA_PASSWORD=cassandra
+    healthcheck:
+       test: [ "CMD", "cqlsh", "-ucassandra", "-pcassandra", "-ksystem" ]
+       interval: 15s
+       timeout: 10s
+       retries: 6
+
+
+  cassandra_node2:
+    container_name: cassandra_node2
+    hostname: cassandra_node1
+    image: cassandra:latest
     networks:
-      - formactions_network
-
-
-  cassandra-node2:
-    image: bitnami/cassandra:latest
+            formactions_network:
+                ipv4_address: 172.30.0.3
+    volumes:
+        - ./data/node2:/var/lib/cassandra/data
+    ports:
+        - 9043:9042
+    logging:
+       driver: none
+    depends_on:
+      - cassandra_node1
     environment:
-      - CASSANDRA_CLUSTER_NAME=cassandra-cluster
-      - CASSANDRA_SEEDS=cassandra-node1,cassandra-node2
-      - CASSANDRA_DATACENTER=FormCenter
-    networks:
-      - formactions_network
+        - CASSANDRA_START_RPC=true
+        - CASSANDRA_CLUSTER_NAME=FormCluster
+        - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+        - CASSANDRA_DC=FormCenter
+        - CASSANDRA_SEEDS=cassandra_node1
+        - CASSANDRA_PASSWORD=cassandra
+
+  # cassandra_node1:
+  #   image: docker.io/bitnami/cassandra:4.0
+  #   ports:
+  #     - 9042:9042
+  #   logging:
+  #     driver: none
+  #   volumes:
+  #     - './data/node1:/bitnami'
+  #   environment:
+  #     - CASSANDRA_BROADCAST_ADDRESS=172.25.0.2
+  #     - CASSANDRA_SEEDS=cassandra_node1,cassandra_node2
+  #     - CASSANDRA_CLUSTER_NAME=FormCluster
+  #     - CASSANDRA_DATACENTER=FormCenter
+  #     - CASSANDRA_PASSWORD_SEEDER=yes
+  #     - CASSANDRA_PASSWORD=cassandra
+  #   healthcheck:
+  #     test: [ "CMD", "cqlsh", "-ucassandra", "-pcassandra", "-ksystem" ]
+  #     interval: 15s
+  #     timeout: 10s
+  #     retries: 6
+  #   networks:
+  #   - formactions_network
+
+  # cassandra_node2:
+  #   image: docker.io/bitnami/cassandra:4.0
+  #   ports:
+  #     - 9043:9042
+  #   logging:
+  #         driver: none
+  #   volumes:
+  #     - './data/node2:/bitnami'
+  #   environment:
+  #     - CASSANDRA_BROADCAST_ADDRESS=172.25.0.3
+  #     - CASSANDRA_SEEDS=cassandra_node1,cassandra_node2
+  #     - CASSANDRA_CLUSTER_NAME=FormCluster
+  #     - CASSANDRA_DATACENTER=FormCenter
+  #     - CASSANDRA_PASSWORD=cassandra
+  #   networks:
+  #   - formactions_network
 
 
   apiservice:
     build: .
     ports:
     - "84:84"
-    networks:
-    - formactions_network
     depends_on:
-    - redis
-    - cassandra-node1
+      redis:
+        condition: service_healthy
+      cassandra_node1:
+        condition: service_healthy
     environment:
     - CLIENT_SLEEP=0.25
     - CLIENT_MAX_TRIES=100
@@ -45,6 +121,13 @@ services:
       placement:
         constraints:
         - node.role == manager
+    networks:
+            formactions_network:
+                ipv4_address: 172.30.0.5
 
 networks:
     formactions_network:
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.30.0.0/16

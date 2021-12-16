@@ -7,6 +7,6 @@ class answer_model(Model):
 
     __keyspace__ = "formactions"
     __table_name__ = "answers"
-    answerID = UUID(primary_key=True)
-    questionID = Text()
+    answer_id = UUID(primary_key=True)
+    question_id = Text()
     answer = Text()

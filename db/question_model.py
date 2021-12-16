@@ -7,8 +7,8 @@ class question_model(Model):
 
     __keyspace__ = "formactions"
     __table_name__ = "questions"
-    questionID = UUID(primary_key=True)
-    formID = Text()
+    question_id = UUID(primary_key=True)
+    form_id = Text()
     question = Text()
     question_format = Text()
     created = DateTime()

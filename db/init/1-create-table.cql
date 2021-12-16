@@ -1,46 +1,46 @@
 use formactions;
 
 CREATE TABLE IF NOT EXISTS forms(
-                            formID uuid,
-                            clientID text,
+                            form_id uuid,
+                            client_id text,
                             questions list<text>,
                             responses list<text>,
                             actions list<text>,
                             created timestamp,
                             deadline timestamp,
-                            PRIMARY KEY(formId));
+                            PRIMARY KEY(form_id));
 
 CREATE TABLE IF NOT EXISTS questions(
-                            questionID uuid,
-                            formID text,
+                            question_id uuid,
+                            form_id text,
                             question text,
                             format text,
                             created timestamp,
-                            PRIMARY KEY(questionId));
+                            PRIMARY KEY(question_id));
 
 CREATE TABLE IF NOT EXISTS answers(
-                                answerID uuid,
-                                questionID uuid,
+                                answer_id uuid,
+                                question_id uuid,
                                 answer text,
-                                PRIMARY KEY(answerId));
+                                PRIMARY KEY(answer_id));
 
 CREATE TABLE IF NOT EXISTS responses(
-                            responseID uuid,
-                            formID text,
-                            userID text,
+                            response_id uuid,
+                            form_id text,
+                            user_id text,
                             responses list<text>,
                             created timestamp,
-                            PRIMARY KEY(responseId));
+                            PRIMARY KEY(response_id));
 
-CREATE TYPE IF NOT EXISTS metadata(
+CREATE TYPE IF NOT EXISTS action_meta_data(
                                 meta_property text,
                                 meta_value text
                             );
 
 CREATE TABLE IF NOT EXISTS actions(
-                            actionID uuid,
-                            formID text,
+                            action_id uuid,
+                            form_id text,
                             action text,
                             trigger text,
-                            meta   list<frozen<metadata>>,
-                            PRIMARY KEY(actionId));
+                            meta   list<frozen<action_meta_data>>,
+                            PRIMARY KEY(action_id));

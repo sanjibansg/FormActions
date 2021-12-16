@@ -7,10 +7,10 @@ class form_model(Model):
 
     __keyspace__ = "formactions"
     __table_name__ = "forms"
-    formID = UUID(primary_key=True)
-    clientID = Text()
+    form_id = UUID(primary_key=True)
+    client_id = Text()
     questions = List(Text)
-    responses = list(Text)
-    actions = list(Text)
+    responses = List(Text)
+    actions = List(Text)
     created = DateTime()
     deadline = DateTime()
