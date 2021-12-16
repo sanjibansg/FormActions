@@ -128,8 +128,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# cassandra database folder
-data/
+# cassandra db files
+db/data/node1/*
+db/data/node2/*
+!db/data/node1/.gitkeep 
+!db/data/node2/.gitkeep 
 
 # logs
 logs/

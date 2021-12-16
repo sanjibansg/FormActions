@@ -80,22 +80,6 @@ def initialize():
         logging.exception("CassandraDB Connection failed ", exc_info=True)
 
     try:
-        logging.info("Instantiating tables in keyspace if they don't exist")
-        cql_files = [f for f in glob.glob("db/init/*.cql")]
-        session = db_conn.get_session_object()
-        for file in cql_files:
-            with open(file, mode="r") as f:
-                lines = f.read()
-                statements = lines.split(r";")
-                for i in statements:
-                    statement = i.strip()
-                    if statement != "":
-                        session.execute(statement)
-        logging.info("All tables found/instantiated.")
-    except Exception:
-        logging.exception("Error while finding/instantiating tables ", exc_info=True)
-
-    try:
         logging.info("Syncing tables for object mapping")
         management.sync_type("formactions", action_meta_data)
         sync_table(action_model)
